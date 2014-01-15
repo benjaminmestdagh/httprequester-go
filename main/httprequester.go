@@ -6,6 +6,7 @@ import (
 )
 
 func main() {
+    requester := &httprequester.HttpRequester{ "localhost", false }
     fmt.Printf("Started HttpRequester version %v\n", httprequester.Version)
-    httprequester.Start()
+    requester.Start()
 }

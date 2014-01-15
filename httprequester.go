@@ -10,10 +10,24 @@ const (
     Version = "0.1"
 )
 
-func Start() {
+type HttpRequester struct {
+    Address string
+    GetBody bool
+}
+
+func (h HttpRequester) Start() {
+    var method string
     client := &http.Client{}
 
-    request, err := http.NewRequest("GET", "http://localhost", nil)
+    switch {
+    case h.GetBody:
+        method = "GET"
+    default:
+        method = "HEAD"
+    }
+
+
+    request, err := http.NewRequest(method, "http://" + h.Address, nil)
     if err != nil {
         fmt.Println(err)
     }
