@@ -2,7 +2,6 @@ package httprequester
 
 import (
     "fmt"
-    "sync"
     "net/http"
 )
 
@@ -13,21 +12,14 @@ const (
 type HttpRequester struct {
     Address string
     GetBody bool
+    Requests int
+    Threads int
 }
 
 func (h HttpRequester) Start() {
-    var method string
     client := &http.Client{}
 
-    switch {
-    case h.GetBody:
-        method = "GET"
-    default:
-        method = "HEAD"
-    }
-
-
-    request, err := http.NewRequest(method, "http://" + h.Address, nil)
+    request, err := http.NewRequest(h.getMethod(), "http://" + h.Address, nil)
     if err != nil {
         fmt.Println(err)
     }
@@ -35,21 +27,46 @@ func (h HttpRequester) Start() {
     userAgent := "HttpRequester/" + Version
     request.Header.Set("User-Agent", userAgent)
 
-    waitGroup := sync.WaitGroup{}
-    defer waitGroup.Wait()
+    requestsPerThread := h.Requests / h.Threads
+    remainingRequests := h.Requests % h.Threads
 
-    for i := 0; i < 10; i++ {
-        waitGroup.Add(1)
-        go func() {
-            defer waitGroup.Done()
-            response, err := client.Do(request)
-            if err != nil {
-                fmt.Println(err)
-            } else {
-                fmt.Printf("%v %v\n", response.Proto, response.Status)
-                defer response.Body.Close()
-            }
-        }()
+    c := make(chan string)
+//    h.run(c, requestsPerThread, remainingRequests, client, request)
+    for i := 0; i < h.Threads; i++ {
+        if(remainingRequests > 0) {
+            startRoutine(c, requestsPerThread + 1, client, request)
+            remainingRequests--
+        } else {
+            startRoutine(c, requestsPerThread, client, request)
+        }
     }
 
+    for i := 0; i < h.Requests; i++ {
+        message := <-c
+        fmt.Println(message)
+    }
+}
+
+func (h HttpRequester) getMethod() string {
+    if h.GetBody {
+        return "GET"
+    }
+
+    return "HEAD"
+}
+
+func startRoutine(c chan string, requests int, client *http.Client, request *http.Request) {
+    go func() {
+        for i := 0; i < requests; i++ {
+            var message string
+            response, err := client.Do(request)
+            defer response.Body.Close()
+            if err != nil {
+                message = fmt.Sprintf("%v", err)
+            } else {
+                message = fmt.Sprintf("%v %v", response.Proto, response.Status)
+            }
+            c <- message
+        }
+    }()
 }
