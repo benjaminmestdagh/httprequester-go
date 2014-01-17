@@ -60,11 +60,11 @@ func startRoutine(c chan string, requests int, client *http.Client, request *htt
         for i := 0; i < requests; i++ {
             var message string
             response, err := client.Do(request)
-            defer response.Body.Close()
             if err != nil {
                 message = fmt.Sprintf("%v", err)
             } else {
                 message = fmt.Sprintf("%v %v", response.Proto, response.Status)
+                defer response.Body.Close()
             }
             c <- message
         }
