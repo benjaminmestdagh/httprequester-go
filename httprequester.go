@@ -3,6 +3,7 @@ package httprequester
 import (
     "fmt"
     "net/http"
+    "time"
 )
 
 const (
@@ -14,6 +15,7 @@ type HttpRequester struct {
     GetBody bool
     Requests int
     Threads int
+    Sleep int
     Comchan chan Message
 }
 
@@ -32,10 +34,10 @@ func (h HttpRequester) Start() {
 
         for i := 0; i < h.Threads; i++ {
             if(remainingRequests > 0) {
-                startRoutine(c, requestsPerThread + 1, client, request)
+                startRoutine(c, requestsPerThread + 1, h.Sleep, client, request)
                 remainingRequests--
             } else {
-                startRoutine(c, requestsPerThread, client, request)
+                startRoutine(c, requestsPerThread, h.Sleep, client, request)
             }
         }
 
@@ -71,7 +73,7 @@ func (h *HttpRequester) getThreadsAndRequests() (int, int) {
     return requestsPerThread, remainingRequests
 }
 
-func startRoutine(c chan Message, requests int, client *http.Client, request *http.Request) {
+func startRoutine(c chan Message, requests int, sleep int, client *http.Client, request *http.Request) {
     go func() {
         for i := 0; i < requests; i++ {
             response, err := client.Do(request)
@@ -83,6 +85,7 @@ func startRoutine(c chan Message, requests int, client *http.Client, request *ht
                 defer response.Body.Close()
             }
             c <- message
+            time.Sleep(time.Duration(sleep) * time.Millisecond)
         }
     }()
 }
