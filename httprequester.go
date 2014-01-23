@@ -58,7 +58,7 @@ func (h HttpRequester) getMethod() string {
     return "HEAD"
 }
 
-func (h HttpRequester) getThreadsAndRequests() (int, int) {
+func (h *HttpRequester) getThreadsAndRequests() (int, int) {
     if h.Requests < h.Threads {
         h.Threads = h.Requests
         message := Message { INFO, fmt.Sprintf("Detected more threads than requests, presumed %v threads.", h.Threads) }
